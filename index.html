@@ -7,35 +7,145 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-900">
-  <div class="max-w-xl mx-auto py-24 text-center space-y-6">
-    <h1 class="text-3xl font-bold">MySecondMind</h1>
-    <p class="text-gray-600">Your AI‑powered second brain. Save notes, tasks, links, and set reminders.</p>
+  <main class="min-h-screen flex items-center">
+    <div class="w-full max-w-md mx-auto p-6">
+      <header class="text-center mb-8">
+        <h1 class="text-3xl font-bold">MySecondMind</h1>
+        <p class="text-gray-600 mt-2">Your AI‑powered second brain.</p>
+      </header>
 
-    <!-- Telegram widget login (optional) -->
-    <div id="tg-login" class="space-y-3"></div>
+      <!-- Primary action -->
+      <div class="space-y-4">
+        <button id="primaryCta" class="w-full bg-blue-600 text-white py-3 rounded-lg text-base font-medium hover:bg-blue-700">
+          Continue with Telegram
+        </button>
 
-    <div class="text-gray-400">— or —</div>
-
-    <!-- Code-based linking -->
-    <div class="space-y-3">
-      <button id="getCode" class="bg-blue-600 text-white px-6 py-3 rounded">Get login code</button>
-      <div id="codeBox" class="hidden space-y-2">
-        <p class="text-sm">Send this in Telegram:
-          <code class="font-mono bg-gray-100 px-2 py-1 rounded">/link <span id="codeValue"></span></code>
-        </p>
-        <a id="openBot" class="inline-block bg-gray-900 text-white px-4 py-2 rounded" target="_blank" rel="noopener">Open Telegram (web)</a>
-        <a id="openBotNative" class="inline-block bg-gray-700 text-white px-4 py-2 rounded" target="_blank" rel="noopener">Open Telegram (app)</a>
-        <button id="copyCmd" class="inline-block bg-gray-200 px-3 py-2 rounded">Copy “/link CODE”</button>
-        <button id="checkLink" class="bg-gray-700 text-white px-4 py-2 rounded">I’ve linked – continue</button>
+        <!-- Subtle fallback toggle -->
+        <button id="toggleFallback" class="w-full text-sm text-gray-600 underline">
+          Having trouble? Use code or browser login
+        </button>
       </div>
+
+      <!-- Fallback panel (hidden by default) -->
+      <section id="fallbackPanel" class="hidden mt-6 space-y-5">
+        <!-- Code-based linking -->
+        <div class="bg-white border rounded-lg p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="font-semibold">Link with a 6‑digit code</h2>
+            <button id="getCode" class="text-sm bg-gray-900 text-white px-3 py-1.5 rounded">Get code</button>
+          </div>
+
+          <div id="codeBox" class="hidden space-y-3">
+            <p class="text-sm">Send this in Telegram:</p>
+            <div class="flex items-center gap-2">
+              <code class="font-mono bg-gray-100 px-2 py-1 rounded text-base">/link <span id="codeValue"></span></code>
+              <button id="copyCmd" class="text-xs bg-gray-200 px-2 py-1 rounded">Copy</button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <a id="openBotNative" class="text-center bg-blue-600 text-white py-2 rounded hover:bg-blue-700" target="_blank" rel="noopener">
+                Open Telegram app
+              </a>
+              <a id="openBotWeb" class="text-center bg-gray-800 text-white py-2 rounded hover:bg-gray-900" target="_blank" rel="noopener">
+                Open in Telegram Web
+              </a>
+            </div>
+
+            <button id="checkLink" class="w-full bg-emerald-600 text-white py-2.5 rounded hover:bg-emerald-700">
+              I’ve linked – continue
+            </button>
+            <p class="text-xs text-gray-500">If Telegram only sends “/start”, paste the command above.</p>
+          </div>
+        </div>
+
+        <!-- Optional browser widget login -->
+        <div class="bg-white border rounded-lg p-4 space-y-3">
+          <h2 class="font-semibold">Browser login (optional)</h2>
+          <div id="tg-login"></div>
+          <p class="text-xs text-gray-500">If blocked by extensions, try Incognito.</p>
+        </div>
+      </section>
+
+      <footer class="mt-8 text-center text-xs text-gray-400">
+        Secure: cookies SameSite=None; HTTPS required
+      </footer>
     </div>
-  </div>
+  </main>
 
   <script>
+    // Configure your endpoints and bot
     const API_ORIGIN = 'https://mymind-924q.onrender.com';
     const botUsername = 'mysecondmind_assistant_bot'; // no @
 
-    // Telegram widget (optional)
+    // UI elements
+    const primaryCta = document.getElementById('primaryCta');
+    const toggleFallback = document.getElementById('toggleFallback');
+    const fallbackPanel = document.getElementById('fallbackPanel');
+
+    const getCodeBtn = document.getElementById('getCode');
+    const codeBox = document.getElementById('codeBox');
+    const codeValue = document.getElementById('codeValue');
+    const copyBtn = document.getElementById('copyCmd');
+    const openBotNative = document.getElementById('openBotNative');
+    const openBotWeb = document.getElementById('openBotWeb');
+    const checkBtn = document.getElementById('checkLink');
+
+    let currentCode = '';
+
+    // Primary flow: generate code then open Telegram app directly
+    primaryCta.addEventListener('click', async () => {
+      try {
+        const res = await fetch(`${API_ORIGIN}/auth/start-link`, { method: 'POST' });
+        const data = await res.json();
+        currentCode = data.code;
+        // Prefer native app deep-link; web link as fallback
+        const nativeUrl = `tg://resolve?domain=${botUsername}&start=link_${encodeURIComponent(currentCode)}`;
+        const webUrl = `https://t.me/${botUsername}?start=link_${encodeURIComponent(currentCode)}`;
+        // Try native first
+        window.location.href = nativeUrl;
+        // Show code UI for users who need to copy or use web
+        fallbackPanel.classList.remove('hidden');
+        codeBox.classList.remove('hidden');
+        codeValue.textContent = currentCode;
+        openBotNative.href = nativeUrl;
+        openBotWeb.href = webUrl;
+      } catch (e) {
+        // If something fails, reveal fallback
+        fallbackPanel.classList.remove('hidden');
+      }
+    });
+
+    // Fallback toggle
+    toggleFallback.addEventListener('click', () => {
+      fallbackPanel.classList.toggle('hidden');
+    });
+
+    // Manual “Get code” (fallback panel)
+    getCodeBtn.addEventListener('click', async () => {
+      const res = await fetch(`${API_ORIGIN}/auth/start-link`, { method: 'POST' });
+      const data = await res.json();
+      currentCode = data.code;
+      codeValue.textContent = currentCode;
+      openBotNative.href = `tg://resolve?domain=${botUsername}&start=link_${encodeURIComponent(currentCode)}`;
+      openBotWeb.href = `https://t.me/${botUsername}?start=link_${encodeURIComponent(currentCode)}`;
+      codeBox.classList.remove('hidden');
+    });
+
+    // Copy /link CODE
+    copyBtn.addEventListener('click', async () => {
+      if (!currentCode) return;
+      const cmd = `/link ${currentCode}`;
+      try { await navigator.clipboard.writeText(cmd); } catch {}
+      alert(`Copied: ${cmd}`);
+    });
+
+    // Complete login after linking
+    checkBtn.addEventListener('click', async () => {
+      if (!currentCode) return;
+      window.location.href = `${API_ORIGIN}/auth/check-link?code=${encodeURIComponent(currentCode)}`;
+    });
+
+    // Optional: browser widget login in fallback panel
     try {
       const s = document.createElement('script');
       s.async = true;
@@ -45,39 +155,6 @@
       s.setAttribute('data-auth-url', `${API_ORIGIN}/auth/telegram`);
       document.getElementById('tg-login').appendChild(s);
     } catch {}
-
-    // Code-based linking with deep link
-    const getCodeBtn = document.getElementById('getCode');
-    const codeBox = document.getElementById('codeBox');
-    const codeValue = document.getElementById('codeValue');
-    const checkBtn = document.getElementById('checkLink');
-    const openBot = document.getElementById('openBot');
-    const openBotNative = document.getElementById('openBotNative');
-    const copyBtn = document.getElementById('copyCmd');
-
-    let currentCode = '';
-
-    getCodeBtn.addEventListener('click', async () => {
-      const res = await fetch(`${API_ORIGIN}/auth/start-link`, { method: 'POST' });
-      const data = await res.json();
-      currentCode = data.code;
-      codeValue.textContent = currentCode;
-      openBot.href = `https://t.me/${botUsername}?start=link_${encodeURIComponent(currentCode)}`;
-      openBotNative.href = `tg://resolve?domain=${botUsername}&start=link_${encodeURIComponent(currentCode)}`;
-      codeBox.classList.remove('hidden');
-    });
-
-    checkBtn.addEventListener('click', async () => {
-      if (!currentCode) return;
-      window.location.href = `${API_ORIGIN}/auth/check-link?code=${encodeURIComponent(currentCode)}`;
-    });
-
-    copyBtn.addEventListener('click', async () => {
-      if (!currentCode) return;
-      const cmd = `/link ${currentCode}`;
-      try { await navigator.clipboard.writeText(cmd); } catch {}
-      alert(`Copied: ${cmd}`);
-    });
   </script>
 </body>
 </html>
