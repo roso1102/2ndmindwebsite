@@ -14,10 +14,8 @@
 </div>
 
 <script>
-  // Base API origin (no trailing slash)
-  const API_ORIGIN = 'https://mymind-924q.onrender.com';
-  // Your bot username from BotFather (without @)
-  const botUsername = 'mysecondmind_assistant_bot';
+  const API_ORIGIN = 'https://mymind-924q.onrender.com'; // your Render URL, no trailing slash
+  const botUsername = 'mysecondmind_assistant_bot'; // exact bot username from BotFather, without @
 
   const s = document.createElement('script');
   s.async = true;
@@ -25,7 +23,6 @@
   s.setAttribute('data-telegram-login', botUsername);
   s.setAttribute('data-size', 'large');
   s.setAttribute('data-auth-url', `${API_ORIGIN}/auth/telegram`);
-  // optional: s.setAttribute('data-request-access', 'write');
   document.getElementById('tg-login').appendChild(s);
 </script>
 </body>
