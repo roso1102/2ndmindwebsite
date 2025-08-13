@@ -41,11 +41,14 @@
   <script>
     const API_ORIGIN = 'https://mymind-924q.onrender.com';
 
+    let USER_ID = '';
+
     async function checkSession() {
       try {
         const res = await fetch(`${API_ORIGIN}/api/me`, { credentials: 'include' });
         if (!res.ok) throw new Error('unauth');
         const { user_id } = await res.json();
+        USER_ID = user_id;
         document.getElementById('authStatus').textContent = `Logged in as ${user_id}`;
         document.getElementById('appRoot').classList.remove('hidden');
         loadList('all');
@@ -57,14 +60,11 @@
     async function loadList(type) {
       const target = document.getElementById('main');
       target.textContent = 'Loading…';
-      const url = type === 'all' ? `${API_ORIGIN}/partials/list` : `${API_ORIGIN}/partials/list?type=${encodeURIComponent(type)}`;
+      const base = type === 'all' ? `${API_ORIGIN}/partials/list` : `${API_ORIGIN}/partials/list?type=${encodeURIComponent(type)}`;
+      const url = base + (base.includes('?') ? `&user_id=${encodeURIComponent(USER_ID)}` : `?user_id=${encodeURIComponent(USER_ID)}`);
       const res = await fetch(url, { credentials: 'include' });
       target.innerHTML = await res.text();
     }
-
-    document.querySelectorAll('aside [data-type]').forEach(btn => {
-      btn.addEventListener('click', () => loadList(btn.dataset.type));
-    });
 
     document.getElementById('createForm').addEventListener('submit', async (e) => {
       e.preventDefault();
